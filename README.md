@@ -477,11 +477,118 @@ packet-crafting
 ```
 
 ---
+## Mitigación del ataque CDP DoS
+
+La mitigación del ataque CDP DoS se basa en reducir la exposición del protocolo CDP en puertos no confiables. CDP es útil para administración y descubrimiento entre dispositivos Cisco, pero no debe estar habilitado en puertos de usuario final, laboratorios con máquinas atacantes, equipos externos o interfaces donde no exista una necesidad administrativa clara.
+
+### Controles aplicados
+
+### 1. Deshabilitar CDP en puertos no confiables
+
+La contramedida principal consiste en apagar CDP en los puertos conectados a usuarios o equipos no confiables.
+
+```cisco
+interface range gigabitEthernet0/1 - 2
+no cdp enable
+```
+
+Con esto, el switch deja de procesar anuncios CDP provenientes de Kali o de cualquier equipo conectado a esos puertos.
+
+### 2. Mantener CDP solo en enlaces confiables
+
+CDP puede mantenerse habilitado únicamente en enlaces administrados entre dispositivos de red, por ejemplo entre el switch y el router.
+
+```cisco
+interface gigabitEthernet0/0
+cdp enable
+```
+
+Esta práctica permite conservar visibilidad administrativa sin exponer CDP en puertos de acceso.
+
+### 3. Configurar los puertos como access
+
+Los puertos de usuario deben configurarse explícitamente como access para evitar negociación dinámica o comportamientos no deseados.
+
+```cisco
+interface range gigabitEthernet0/1 - 2
+switchport mode access
+switchport access vlan 58
+switchport nonegotiate
+```
+
+### 4. Aplicar storm-control
+
+CDP utiliza tráfico multicast de capa 2. Aunque la mitigación principal es deshabilitar CDP, storm-control ayuda a limitar tráfico excesivo broadcast, multicast o unicast desconocido en puertos de acceso.
+
+```cisco
+interface range gigabitEthernet0/1 - 2
+storm-control broadcast level 1.00
+storm-control multicast level 1.00
+storm-control unicast level 1.00
+```
+
+### 5. Aplicar Port Security
+
+Port Security limita la cantidad de direcciones MAC permitidas por puerto. Esto no reemplaza `no cdp enable`, pero ayuda a endurecer el puerto ante ataques de capa 2 combinados.
+
+```cisco
+interface range gigabitEthernet0/1 - 2
+switchport port-security
+switchport port-security maximum 1
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+```
+
+### 6. Endurecimiento STP en puertos de usuario
+
+Aunque BPDU Guard no mitiga directamente CDP DoS, protege los puertos de acceso contra ataques relacionados con STP.
+
+```cisco
+interface range gigabitEthernet0/1 - 2
+spanning-tree portfast
+spanning-tree bpduguard enable
+```
+
+---
+
+## Verificación de la mitigación
+
+Después de aplicar la configuración, se limpian las entradas CDP y los contadores:
+
+```cisco
+clear cdp table
+clear cdp counters
+```
+
+Luego se valida el estado del switch:
+
+```cisco
+show cdp interface
+show cdp neighbors
+show cdp traffic
+show processes cpu sorted | include CPU|CDP|IOSv e1000|Exec|console
+show port-security
+show storm-control
+```
+
+### Resultado esperado
+
+Después de aplicar la mitigación:
+
+* Los puertos no confiables no deben procesar CDP.
+* No deben aparecer vecinos falsos generados desde Kali.
+* La tabla CDP debe mostrar solo vecinos legítimos.
+* El proceso `CDP Protocol` no debe elevarse de forma anormal.
+* El switch debe mantener estabilidad aunque el script siga enviando tráfico desde el atacante.
+
+---
 
 ## Conclusión
 
 El laboratorio demuestra que CDP puede ser abusado por un atacante conectado a un puerto de acceso para generar carga innecesaria en un switch Cisco.
-La contramedida recomendada es deshabilitar CDP en puertos no confiables y permitirlo únicamente en enlaces administrados entre dispositivos de red.
+La mitigación general recomendada consiste en aplicar una defensa por capas. Primero se deshabilita CDP en puertos no confiables, luego se restringen los puertos como access, se desactiva la negociación dinámica, se limita tráfico excesivo con storm-control y se endurecen los puertos con Port Security y BPDU Guard.
+
+La medida más importante contra CDP DoS es `no cdp enable` en puertos de usuario. Los demás controles complementan la protección general de capa 2.
 
 Este tipo de práctica ayuda a comprender la importancia de endurecer configuraciones de capa 2 y aplicar controles preventivos en redes empresariales.
 
@@ -489,6 +596,6 @@ Este tipo de práctica ayuda a comprender la importancia de endurecer configurac
 
 ## Autor
 
-**Michael / iClexi**
+**Michael Robles / iClexi**
 Laboratorio de Seguridad de Redes
 Proyecto académico de ataque y mitigación CDP DoS
