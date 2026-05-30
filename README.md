@@ -20,7 +20,7 @@ No debe utilizarse en redes públicas, empresariales o de terceros sin autorizac
 
 | Archivo                                                  | Descripción                                                                                                    |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [`cdp-attack.py`](./cdp-attack.py)                       | Script principal usado para ejecutar el ataque CDP DoS desde Kali Linux.                                       |
+| [`cdp-attack.py`](./cdp-attack.py)                       | Script principal utilizado para ejecutar el ataque CDP DoS desde Kali Linux.                                   |
 | [`mitigacion-cdp-attack.md`](./mitigacion-cdp-attack.md) | Documento técnico con la mitigación general contra ataques CDP DoS.                                            |
 | [`README.md`](./README.md)                               | Documentación principal del laboratorio, uso del script, evidencia esperada y flujo recomendado para el video. |
 
@@ -30,9 +30,31 @@ No debe utilizarse en redes públicas, empresariales o de terceros sin autorizac
 
 Este laboratorio demuestra un ataque de denegación de servicio lógico mediante el abuso del protocolo **CDP, Cisco Discovery Protocol**.
 
-CDP es un protocolo de capa 2 utilizado por dispositivos Cisco para descubrir vecinos directamente conectados. Al enviar una gran cantidad de paquetes CDP falsificados hacia un switch, el dispositivo puede verse obligado a procesar anuncios inválidos o maliciosos, consumir recursos de CPU y llenar su tabla de vecinos CDP con entradas falsas.
+CDP es un protocolo de capa 2 utilizado por dispositivos Cisco para descubrir vecinos directamente conectados. Al enviar una gran cantidad de paquetes CDP falsificados hacia un switch, el dispositivo puede verse obligado a procesar anuncios maliciosos, consumir recursos de CPU y llenar su tabla de vecinos CDP con entradas falsas.
 
 El objetivo principal del laboratorio es demostrar el impacto del ataque y aplicar una contramedida efectiva para mitigarlo.
+
+---
+
+## Base del direccionamiento IP
+
+El direccionamiento IP del laboratorio fue definido tomando como base la matrícula:
+
+```text
+20250845
+```
+
+Separando la matrícula en octetos, se obtuvo la dirección base:
+
+```text
+20.25.8.45
+```
+
+A partir de esta dirección se creó la red del laboratorio:
+
+```text
+20.25.8.0/24
+```
 
 ---
 
@@ -53,7 +75,7 @@ El script [`cdp-attack.py`](./cdp-attack.py) genera múltiples tramas CDP falsif
 ```text
                    +----------------+
                    |      R-1       |
-                   | 192.168.58.1   |
+                   | 20.25.8.45     |
                    | Fa0/0          |
                    +-------+--------+
                            |
@@ -69,8 +91,8 @@ El script [`cdp-attack.py`](./cdp-attack.py) genera múltiples tramas CDP falsif
               +--------+        +--------+
               |                          |
         +-----+-----+              +-----+-----+
-        |   Kali    |              |   VPC     |
-        |192.168.58.3              |192.168.58.2
+        |   Kali    |              |    VPC    |
+        | 20.25.8.46|              |20.25.8.47 |
         +-----------+              +-----------+
 ```
 
@@ -78,14 +100,14 @@ El script [`cdp-attack.py`](./cdp-attack.py) genera múltiples tramas CDP falsif
 
 ## Direccionamiento IP
 
-| Dispositivo | Interfaz |    Dirección IP | Descripción                |
-| ----------- | -------- | --------------: | -------------------------- |
-| R-1         | Fa0/0    | 192.168.58.1/24 | Gateway de la red          |
-| SW-1        | Gi0/0    |             N/A | Conexión hacia R-1         |
-| SW-1        | Gi0/1    |             N/A | Puerto hacia Kali atacante |
-| SW-1        | Gi0/2    |             N/A | Puerto hacia VPC víctima   |
-| Kali        | eth1     | 192.168.58.3/24 | Máquina atacante           |
-| VPC         | eth0     | 192.168.58.2/24 | Equipo de prueba           |
+| Dispositivo | Interfaz |  Dirección IP | Descripción                |
+| ----------- | -------- | ------------: | -------------------------- |
+| R-1         | Fa0/0    | 20.25.8.45/24 | Gateway de la red          |
+| SW-1        | Gi0/0    |           N/A | Conexión hacia R-1         |
+| SW-1        | Gi0/1    |           N/A | Puerto hacia Kali atacante |
+| SW-1        | Gi0/2    |           N/A | Puerto hacia VPC víctima   |
+| Kali        | eth1     | 20.25.8.46/24 | Máquina atacante           |
+| VPC         | eth0     | 20.25.8.47/24 | Equipo de prueba           |
 
 ---
 
@@ -104,6 +126,67 @@ El script [`cdp-attack.py`](./cdp-attack.py) genera múltiples tramas CDP falsif
 * Switch Cisco IOSvL2
 * CDP habilitado en el puerto conectado al atacante
 * Laboratorio en GNS3, EVE-NG, PNETLab o entorno equivalente
+
+---
+
+## Configuración IP base del laboratorio
+
+### Router R-1
+
+```cisco
+enable
+configure terminal
+
+interface fastEthernet0/0
+ip address 20.25.8.45 255.255.255.0
+no shutdown
+
+end
+write memory
+```
+
+Si el router usa `GigabitEthernet0/0`, se cambia la interfaz:
+
+```cisco
+interface gigabitEthernet0/0
+ip address 20.25.8.45 255.255.255.0
+no shutdown
+```
+
+### VPC
+
+```text
+ip 20.25.8.47/24 20.25.8.45
+```
+
+### Kali
+
+Si la interfaz del laboratorio es `eth1`:
+
+```bash
+sudo ip addr flush dev eth1
+sudo ip addr add 20.25.8.46/24 dev eth1
+sudo ip link set eth1 up
+sudo ip route replace default via 20.25.8.45
+```
+
+---
+
+## Pruebas de conectividad
+
+Desde VPC:
+
+```text
+ping 20.25.8.45
+ping 20.25.8.46
+```
+
+Desde Kali:
+
+```bash
+ping -c 4 20.25.8.45
+ping -c 4 20.25.8.47
+```
 
 ---
 
@@ -146,12 +229,16 @@ Ejemplo:
 Interfaces disponibles:
 
 1. eth0 UP 192.168.202.x/24
-2. eth1 UP 192.168.58.3/24
+2. eth1 UP 20.25.8.46/24
 
 Selecciona la interfaz conectada al switch [Enter = eth0]:
 ```
 
-En este laboratorio, la interfaz correcta es la que pertenece a la red `192.168.58.0/24`.
+En este laboratorio, la interfaz correcta es la que pertenece a la red:
+
+```text
+20.25.8.0/24
+```
 
 ---
 
