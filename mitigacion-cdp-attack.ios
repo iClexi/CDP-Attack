@@ -1,0 +1,40 @@
+enable
+configure terminal
+
+cdp run
+
+interface gigabitEthernet0/0
+description Enlace_confiable_hacia_R1
+cdp enable
+switchport mode access
+switchport access vlan 58
+switchport nonegotiate
+
+interface range gigabitEthernet0/1 - 2
+description Puertos_no_confiables_de_usuario
+no cdp enable
+switchport mode access
+switchport access vlan 58
+switchport nonegotiate
+storm-control broadcast level 1.00
+storm-control multicast level 1.00
+storm-control unicast level 1.00
+switchport port-security
+switchport port-security maximum 1
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+spanning-tree portfast
+spanning-tree bpduguard enable
+
+end
+write memory
+
+clear cdp table
+clear cdp counters
+
+show cdp interface
+show cdp neighbors
+show cdp traffic
+show processes cpu sorted | include CPU|CDP|IOSv e1000|Exec|console
+show port-security
+show storm-control
