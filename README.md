@@ -9,9 +9,20 @@
 ## Aviso de uso responsable
 
 Este proyecto fue desarrollado únicamente con fines educativos, académicos y de laboratorio controlado.
+
 El script debe ejecutarse solamente en entornos propios o autorizados, como GNS3, EVE-NG, PNETLab o laboratorios internos de pruebas.
 
 No debe utilizarse en redes públicas, empresariales o de terceros sin autorización explícita.
+
+---
+
+## Archivos del repositorio
+
+| Archivo                                                  | Descripción                                                                                                    |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [`cdp-attack.py`](./cdp-attack.py)                       | Script principal usado para ejecutar el ataque CDP DoS desde Kali Linux.                                       |
+| [`mitigacion-cdp-attack.md`](./mitigacion-cdp-attack.md) | Documento técnico con la mitigación general contra ataques CDP DoS.                                            |
+| [`README.md`](./README.md)                               | Documentación principal del laboratorio, uso del script, evidencia esperada y flujo recomendado para el video. |
 
 ---
 
@@ -33,7 +44,7 @@ Demostrar cómo un atacante conectado a un puerto de acceso puede abusar del pro
 
 ## Objetivo del script
 
-El script `cdp-attack.py` genera múltiples tramas CDP falsificadas y las envía por la interfaz seleccionada. Cada trama contiene valores variables para simular vecinos CDP falsos, provocando que el switch procese una gran cantidad de anuncios CDP.
+El script [`cdp-attack.py`](./cdp-attack.py) genera múltiples tramas CDP falsificadas y las envía por la interfaz seleccionada. Cada trama contiene valores variables para simular vecinos CDP falsos, provocando que el switch procese una gran cantidad de anuncios CDP.
 
 ---
 
@@ -177,6 +188,7 @@ sudo python3 cdp-attack.py -i eth1 --yes
 ## Funcionamiento técnico
 
 El script construye tramas CDP falsas utilizando encapsulación de capa 2 con LLC/SNAP.
+
 Cada paquete contiene TLVs de CDP como:
 
 * Device ID
@@ -188,8 +200,7 @@ Cada paquete contiene TLVs de CDP como:
 * Duplex
 * Software Version
 
-El campo **Device ID** cambia constantemente para provocar que el switch registre múltiples vecinos falsos.
-El prefijo del ataque se genera automáticamente en cada ejecución usando una marca de tiempo, lo que permite crear nuevos conjuntos de vecinos falsificados en cada prueba.
+El campo **Device ID** cambia constantemente para provocar que el switch registre múltiples vecinos falsos. El prefijo del ataque se genera automáticamente en cada ejecución usando una marca de tiempo, lo que permite crear nuevos conjuntos de vecinos falsificados en cada prueba.
 
 Ejemplo de nombres generados:
 
@@ -219,12 +230,12 @@ show cdp neighbors
 
 Durante la ejecución del script, se espera observar:
 
-* Aumento del uso de CPU
-* Aumento de paquetes CDP recibidos
-* Entradas CDP falsas generadas por Kali
-* Consumo del proceso `CDP Protocol`
-* Consumo del proceso `IOSv e1000`
-* Posible lentitud en la consola del switch
+* Aumento del uso de CPU.
+* Aumento de paquetes CDP recibidos.
+* Entradas CDP falsas generadas por Kali.
+* Consumo del proceso `CDP Protocol`.
+* Consumo del proceso `IOSv e1000`.
+* Posible lentitud en la consola del switch.
 
 Comandos para validar el ataque:
 
@@ -277,11 +288,15 @@ El destino multicast `01:00:0c:cc:cc:cc` corresponde al tráfico CDP.
 
 ---
 
-## Contramedida aplicada
+## Mitigación
 
 La mitigación principal consiste en deshabilitar CDP en puertos de acceso o puertos no confiables.
 
-En este laboratorio, Kali está conectado a `GigabitEthernet0/1`, por lo tanto se aplica:
+La documentación completa de mitigación está disponible aquí:
+
+* [`mitigacion-cdp-attack.md`](./mitigacion-cdp-attack.md)
+
+Ejemplo básico aplicado al puerto del atacante:
 
 ```cisco
 configure terminal
@@ -332,7 +347,7 @@ Resultado esperado:
 6. Ejecutar el script desde Kali.
 7. Mostrar aumento de CPU y entradas CDP falsas.
 8. Mostrar captura en Wireshark.
-9. Aplicar la contramedida.
+9. Aplicar la contramedida documentada en [`mitigacion-cdp-attack.md`](./mitigacion-cdp-attack.md).
 10. Ejecutar nuevamente el script.
 11. Confirmar que la mitigación funciona.
 12. Cerrar con una conclusión técnica.
@@ -360,7 +375,7 @@ show cdp neighbors
 show cdp entry *
 ```
 
-Mitigación:
+Mitigación básica:
 
 ```cisco
 configure terminal
@@ -380,11 +395,11 @@ clear cdp counters
 
 Posibles causas:
 
-* Interfaz incorrecta
-* Interfaz apagada
-* Error de permisos
-* Trama demasiado grande
-* El enlace virtual no está activo
+* Interfaz incorrecta.
+* Interfaz apagada.
+* Error de permisos.
+* Trama demasiado grande.
+* El enlace virtual no está activo.
 
 Verificar interfaces:
 
@@ -410,14 +425,15 @@ sudo python3 cdp-attack.py -i eth1 --yes
 ### El CPU sube y baja
 
 Es normal en IOSvL2. El procesamiento ocurre por ráfagas y el entorno virtual introduce variaciones.
+
 La evidencia no depende únicamente del porcentaje de CPU, sino también de:
 
-* Paquetes CDP recibidos
-* Entradas CDP falsas
-* Proceso `CDP Protocol`
-* Proceso `IOSv e1000`
-* Lentitud en consola
-* Captura en Wireshark
+* Paquetes CDP recibidos.
+* Entradas CDP falsas.
+* Proceso `CDP Protocol`.
+* Proceso `IOSv e1000`.
+* Lentitud en consola.
+* Captura en Wireshark.
 
 ---
 
@@ -446,8 +462,9 @@ end
 
 ```text
 CDP-Attack/
-├── cdp-attack.py
 ├── README.md
+├── cdp-attack.py
+├── mitigacion-cdp-attack.md
 ├── captures/
 │   ├── cpu-before.png
 │   ├── cpu-during.png
@@ -477,120 +494,16 @@ packet-crafting
 ```
 
 ---
-## Mitigación del ataque CDP DoS
-
-La mitigación del ataque CDP DoS se basa en reducir la exposición del protocolo CDP en puertos no confiables. CDP es útil para administración y descubrimiento entre dispositivos Cisco, pero no debe estar habilitado en puertos de usuario final, laboratorios con máquinas atacantes, equipos externos o interfaces donde no exista una necesidad administrativa clara.
-
-### Controles aplicados
-
-### 1. Deshabilitar CDP en puertos no confiables
-
-La contramedida principal consiste en apagar CDP en los puertos conectados a usuarios o equipos no confiables.
-
-```cisco
-interface range gigabitEthernet0/1 - 2
-no cdp enable
-```
-
-Con esto, el switch deja de procesar anuncios CDP provenientes de Kali o de cualquier equipo conectado a esos puertos.
-
-### 2. Mantener CDP solo en enlaces confiables
-
-CDP puede mantenerse habilitado únicamente en enlaces administrados entre dispositivos de red, por ejemplo entre el switch y el router.
-
-```cisco
-interface gigabitEthernet0/0
-cdp enable
-```
-
-Esta práctica permite conservar visibilidad administrativa sin exponer CDP en puertos de acceso.
-
-### 3. Configurar los puertos como access
-
-Los puertos de usuario deben configurarse explícitamente como access para evitar negociación dinámica o comportamientos no deseados.
-
-```cisco
-interface range gigabitEthernet0/1 - 2
-switchport mode access
-switchport access vlan 58
-switchport nonegotiate
-```
-
-### 4. Aplicar storm-control
-
-CDP utiliza tráfico multicast de capa 2. Aunque la mitigación principal es deshabilitar CDP, storm-control ayuda a limitar tráfico excesivo broadcast, multicast o unicast desconocido en puertos de acceso.
-
-```cisco
-interface range gigabitEthernet0/1 - 2
-storm-control broadcast level 1.00
-storm-control multicast level 1.00
-storm-control unicast level 1.00
-```
-
-### 5. Aplicar Port Security
-
-Port Security limita la cantidad de direcciones MAC permitidas por puerto. Esto no reemplaza `no cdp enable`, pero ayuda a endurecer el puerto ante ataques de capa 2 combinados.
-
-```cisco
-interface range gigabitEthernet0/1 - 2
-switchport port-security
-switchport port-security maximum 1
-switchport port-security violation restrict
-switchport port-security mac-address sticky
-```
-
-### 6. Endurecimiento STP en puertos de usuario
-
-Aunque BPDU Guard no mitiga directamente CDP DoS, protege los puertos de acceso contra ataques relacionados con STP.
-
-```cisco
-interface range gigabitEthernet0/1 - 2
-spanning-tree portfast
-spanning-tree bpduguard enable
-```
-
----
-
-## Verificación de la mitigación
-
-Después de aplicar la configuración, se limpian las entradas CDP y los contadores:
-
-```cisco
-clear cdp table
-clear cdp counters
-```
-
-Luego se valida el estado del switch:
-
-```cisco
-show cdp interface
-show cdp neighbors
-show cdp traffic
-show processes cpu sorted | include CPU|CDP|IOSv e1000|Exec|console
-show port-security
-show storm-control
-```
-
-### Resultado esperado
-
-Después de aplicar la mitigación:
-
-* Los puertos no confiables no deben procesar CDP.
-* No deben aparecer vecinos falsos generados desde Kali.
-* La tabla CDP debe mostrar solo vecinos legítimos.
-* El proceso `CDP Protocol` no debe elevarse de forma anormal.
-* El switch debe mantener estabilidad aunque el script siga enviando tráfico desde el atacante.
-
----
 
 ## Conclusión
 
 El laboratorio demuestra que CDP puede ser abusado por un atacante conectado a un puerto de acceso para generar carga innecesaria en un switch Cisco.
-La mitigación general recomendada consiste en aplicar una defensa por capas. Primero se deshabilita CDP en puertos no confiables, luego se restringen los puertos como access, se desactiva la negociación dinámica, se limita tráfico excesivo con storm-control y se endurecen los puertos con Port Security y BPDU Guard.
 
-La medida más importante contra CDP DoS es `no cdp enable` en puertos de usuario. Los demás controles complementan la protección general de capa 2.
+La mitigación principal contra CDP DoS es deshabilitar CDP en puertos no confiables mediante `no cdp enable`. Esta práctica permite mantener CDP únicamente en enlaces administrados y reduce la posibilidad de que equipos externos generen carga o entradas CDP falsas.
 
-Este tipo de práctica ayuda a comprender la importancia de endurecer configuraciones de capa 2 y aplicar controles preventivos en redes empresariales.
+Para más detalles, revisar el documento de mitigación:
+
+* [`mitigacion-cdp-attack.md`](./mitigacion-cdp-attack.md)
 
 ---
 
