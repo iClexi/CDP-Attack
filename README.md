@@ -30,11 +30,6 @@ A continuación se muestra la topología utilizada en este laboratorio:
 | **Kali (Atacante)** | eth0         | `20.25.8.46/24` | Atacante         |
 | **PC1 (Víctima)**   | —            | `20.25.8.47/24` | Víctima          |
 
-Antes de ejecutar el ataque, asegúrate de que exista conectividad básica entre el atacante, la víctima y el router. Por ejemplo, desde PC1 puedes probar:
-
-```text
-ping 20.25.8.45
-```
 
 ## Instalación y preparación
 
