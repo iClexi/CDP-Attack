@@ -1,59 +1,73 @@
-# CDP DoS Attack – How‑to Guide
+# Ataque DoS mediante CDP – Guía How-to
 
-## Introduction
-In this repository we demonstrate a Cisco Discovery Protocol (CDP) **Denial of Service (DoS)** attack within a controlled laboratory environment. The purpose is to show how an attacker can exploit CDP by sending a flood of CDP packets to a switch, causing its CPU to spike and eventually degrade network performance. This guide walks you through setting up the lab, running the attack script, observing its impact, and applying mitigation techniques.
+## Introducción
 
-**Responsible Use:**
-This project is for educational and research purposes only. Execute the scripts only in a lab environment where you have permission. Do not use these techniques on production networks.
+En este repositorio se demuestra un ataque de **Denegación de Servicio (DoS)** mediante el protocolo **Cisco Discovery Protocol (CDP)** dentro de un entorno de laboratorio controlado. El propósito es mostrar cómo un atacante puede abusar de CDP enviando una gran cantidad de paquetes CDP hacia un switch, provocando aumento en el uso de CPU y posible degradación del rendimiento de la red.
 
-## Prerequisites
+Esta guía explica cómo preparar el laboratorio, ejecutar el script de ataque, observar su impacto y aplicar las técnicas de mitigación correspondientes.
 
-- A GNS3 lab or similar virtualization environment.
-- Cisco IOSvL2 switch and router images with CDP enabled.
-- A Kali Linux VM (attacker) with Python 3 installed.
-- A victim host (e.g., VPCS or Linux).
-- Base IP network `20.25.8.0/24` configured on all devices.
-- Root or sudo privileges on the attacker machine.
-- Cloned repository [`iClexi/CDP-Attack`](https://github.com/iClexi/CDP-Attack).
+**Uso responsable:**
+Este proyecto es únicamente para fines educativos, académicos y de investigación. Los scripts deben ejecutarse solo en entornos de laboratorio donde tengas autorización. No utilices estas técnicas en redes de producción ni en redes de terceros.
 
-Below is the topology used in this lab:
+## Requisitos previos
 
-![Lab topology](images/topology.png)
+* Un laboratorio en GNS3 o un entorno de virtualización similar.
+* Imágenes de switch Cisco IOSvL2 y router Cisco con CDP habilitado.
+* Una máquina virtual Kali Linux como atacante, con Python 3 instalado.
+* Un equipo víctima, por ejemplo VPCS o Linux.
+* Red base `20.25.8.0/24` configurada en todos los dispositivos.
+* Privilegios de root o sudo en la máquina atacante.
+* Repositorio clonado [`iClexi/CDP-Attack`](https://github.com/iClexi/CDP-Attack).
 
-| Device | Interface | IP address | Role |
-|-------|-----------|------------|------|
-| **R‑1 (Router)** | F0/0 | `20.25.8.45/24` | Gateway |
-| **SW‑1 (Switch)** | Gi0/1, Gi0/2 | — | Layer‑2 switch |
-| **Kali (Attacker)** | eth0 | `20.25.8.46/24` | Attacker |
-| **PC1 (Victim)** | — | `20.25.8.47/24` | Victim |
+A continuación se muestra la topología utilizada en este laboratorio:
 
-Ensure basic connectivity between the attacker, victim and router before running the attack (e.g. `ping 20.25.8.45` from PC1).
+![Topología del laboratorio](images/topology.png)
 
-## Installation and setup
+| Dispositivo         | Interfaz     | Dirección IP    | Rol              |
+| ------------------- | ------------ | --------------- | ---------------- |
+| **R-1 (Router)**    | F0/0         | `20.25.8.45/24` | Gateway          |
+| **SW-1 (Switch)**   | Gi0/1, Gi0/2 | —               | Switch de capa 2 |
+| **Kali (Atacante)** | eth0         | `20.25.8.46/24` | Atacante         |
+| **PC1 (Víctima)**   | —            | `20.25.8.47/24` | Víctima          |
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/iClexi/CDP-Attack.git
-   cd CDP-Attack
-   ```
+Antes de ejecutar el ataque, asegúrate de que exista conectividad básica entre el atacante, la víctima y el router. Por ejemplo, desde PC1 puedes probar:
 
-2. **Install dependencies** on Kali:
-   ```bash
-   sudo apt update
-   sudo apt install python3 python3-pip
-   pip3 install scapy
-   ```
+```text
+ping 20.25.8.45
+```
 
-3. **Configure network devices:**
-   - Enable CDP on the switch and router (default behaviour).
-   - Assign the IP addresses shown in the topology.
-   - Verify connectivity from PC1 to the router with `ping 20.25.8.45`.
+## Instalación y preparación
 
-## Running the attack
+1. **Clonar el repositorio:**
 
-The attack script is `cdp-attack.py`. It sends a burst of CDP packets with customizable payload size, pool size and worker threads. Adjust parameters according to your lab resources.
+```bash
+git clone https://github.com/iClexi/CDP-Attack.git
+cd CDP-Attack
+```
 
-**Example command:**
+2. **Instalar dependencias en Kali:**
+
+```bash
+sudo apt update
+sudo apt install python3 python3-pip
+pip3 install scapy
+```
+
+3. **Configurar los dispositivos de red:**
+
+* Habilitar CDP en el switch y el router, que normalmente viene activo por defecto.
+* Asignar las direcciones IP mostradas en la topología.
+* Verificar conectividad desde PC1 hacia el router con:
+
+```text
+ping 20.25.8.45
+```
+
+## Ejecución del ataque
+
+El script de ataque es `cdp-attack.py`. Este envía ráfagas de paquetes CDP con tamaño de payload, pool y cantidad de workers configurables. Los parámetros pueden ajustarse según los recursos disponibles en el laboratorio.
+
+**Comando de ejemplo:**
 
 ```bash
 sudo python3 cdp-attack.py -i eth0 --yes \
@@ -64,95 +78,97 @@ sudo python3 cdp-attack.py -i eth0 --yes \
   --duration 60
 ```
 
-- `-i eth0` – interface connected to the switch.
-- `--workers` – number of parallel processes (defaults to CPU count).
-- `--pool` – number of packets per worker to pre‑generate.
-- `--payload-size` – size of each CDP packet (max 1500 bytes).
-- `--extra` – extra bytes appended in the software description TLV.
-- `--duration` – attack duration in seconds (`0` is unlimited).
-- `--yes` – skip interactive confirmation.
+* `-i eth0`: interfaz conectada al switch.
+* `--workers`: cantidad de procesos paralelos. Por defecto usa la cantidad de CPU detectada.
+* `--pool`: cantidad de paquetes pre-generados por cada worker.
+* `--payload-size`: tamaño de cada paquete CDP. Máximo recomendado: 1500 bytes.
+* `--extra`: bytes adicionales agregados al TLV de descripción de software.
+* `--duration`: duración del ataque en segundos. Si es `0`, corre sin límite.
+* `--yes`: omite la confirmación interactiva.
 
-During the attack the script prints statistics about packets sent and the average packets per second.
+Durante el ataque, el script muestra estadísticas sobre los paquetes enviados y el promedio de paquetes por segundo.
 
-![Running the attack on Kali](images/script_execution.png)
+![Ejecución del ataque en Kali](images/script_execution.png)
 
-## Observing the impact
+## Observación del impacto
 
-On the switch, monitor the CPU utilisation and CDP neighbours to see the effect of the attack.
+En el switch, se debe monitorear el uso de CPU y los vecinos CDP para observar el efecto del ataque.
 
-### CPU usage before the attack
+### Uso de CPU antes del ataque
 
-```plaintext
+```text
 SW1# show processes cpu sorted
 ```
 
-![CPU before attack](images/cpu_before.png)
+![CPU antes del ataque](images/cpu_before.png)
 
-### CPU usage during the attack
+### Uso de CPU durante el ataque
 
-```plaintext
+```text
 SW1# show processes cpu sorted
 ```
 
-![CPU during attack](images/cpu_after.png)
+![CPU durante el ataque](images/cpu_after.png)
 
-Notice how the CPU utilisation increases when the CDP flood is sent.
+En esta etapa se observa cómo aumenta el uso de CPU cuando se envía el flood de paquetes CDP.
 
-### CDP neighbours after flooding
+### Vecinos CDP después del flood
 
-Run:
+Ejecutar:
 
-```plaintext
+```text
 SW1# show cdp neighbors
 ```
 
-You should see hundreds or thousands of fake CDP entries learned on the attacker’s port:
+Se deben observar cientos o miles de entradas CDP falsas aprendidas desde el puerto del atacante:
 
-![CDP neighbours flood](images/cdp_neighbors.png)
+![Vecinos CDP falsos](images/cdp_neighbors.png)
 
-The script also prints the number of CDP entries displayed, for example:
+El script también muestra la cantidad de entradas CDP desplegadas, por ejemplo:
 
-![Total CDP entries](images/cdp_entries.png)
+![Total de entradas CDP](images/cdp_entries.png)
 
-These entries confirm the flood’s effect on the switch.
+Estas entradas confirman el efecto del flood sobre el switch.
 
-## Mitigation techniques
+## Técnicas de mitigación
 
-Two primary mitigations can stop CDP‑based DoS attacks:
+Existen dos mitigaciones principales para detener ataques DoS basados en CDP.
 
-### 1. Disable CDP globally
+### 1. Deshabilitar CDP globalmente
 
-If CDP is not required, disable it on the entire device:
+Si CDP no es necesario en el dispositivo, puede deshabilitarse completamente:
 
-```plaintext
+```text
 SW1(config)# no cdp run
 SW1# show cdp neighbors
 % CDP is not enabled
 ```
 
-![CDP disabled globally](images/cdp_disabled_global.png)
+![CDP deshabilitado globalmente](images/cdp_disabled_global.png)
 
-This prevents any CDP packets from being processed.
+Esto evita que el dispositivo procese paquetes CDP.
 
-### 2. Disable CDP on untrusted interfaces
+### 2. Deshabilitar CDP en interfaces no confiables
 
-If CDP is needed on management ports but not on user‑facing ports, disable it per interface:
+Si CDP es necesario en puertos de administración o enlaces controlados, pero no en puertos de usuario, puede deshabilitarse por interfaz:
 
-```plaintext
+```text
 SW1(config)# interface gigabitEthernet0/1
 SW1(config-if)# no cdp enable
 SW1# show cdp neighbors
 % CDP is not enabled
 ```
 
-![CDP disabled on interface](images/cdp_disabled_interface.png)
+![CDP deshabilitado por interfaz](images/cdp_disabled_interface.png)
 
-This stops CDP processing only on the specified interface, leaving CDP running elsewhere.
+Esta configuración detiene el procesamiento de CDP solamente en la interfaz especificada, dejando CDP activo en las demás interfaces donde sea necesario.
 
-After applying the mitigation, repeat the attack and observe that the CPU remains low and the CDP neighbours do not increase.
+Después de aplicar la mitigación, se debe repetir el ataque y verificar que la CPU se mantenga baja y que los vecinos CDP no aumenten.
 
-## Conclusion
+## Conclusión
 
-This guide demonstrates how an adversary can exploit Cisco Discovery Protocol by flooding a switch with crafted CDP packets to exhaust CPU resources. By following the steps above, you can reproduce the attack in a lab environment and observe its impact. Always implement the recommended mitigations — disabling CDP globally or on user‑facing ports — to protect your network from such DoS attacks.
+Esta guía demuestra cómo un atacante puede abusar de **Cisco Discovery Protocol (CDP)** enviando paquetes CDP manipulados hacia un switch para consumir recursos de CPU y generar múltiples entradas falsas de vecinos CDP.
 
-For more details about the script parameters, technical notes and troubleshooting, refer to the `mitigacion-cdp-attack.md` file in this repository and the original video tutorial.
+Siguiendo los pasos anteriores, es posible reproducir el ataque dentro de un laboratorio controlado y observar su impacto técnico. La mitigación recomendada consiste en deshabilitar CDP globalmente cuando no sea necesario, o deshabilitarlo únicamente en puertos no confiables o de usuario mediante `no cdp enable`.
+
+Para más detalles sobre los parámetros del script, notas técnicas y solución de problemas, consulta el archivo `mitigacion-cdp-attack.md` incluido en este repositorio y el video original del laboratorio.
