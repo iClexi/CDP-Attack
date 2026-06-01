@@ -70,21 +70,8 @@ El script de ataque es `cdp-attack.py`. Este envía ráfagas de paquetes CDP con
 **Comando de ejemplo:**
 
 ```bash
-sudo python3 cdp-attack.py -i eth0 --yes \
-  --workers 4 \
-  --pool 3000 \
-  --payload-size 1500 \
-  --extra 1400 \
-  --duration 60
+sudo python3 cdp-attack.py 
 ```
-
-* `-i eth0`: interfaz conectada al switch.
-* `--workers`: cantidad de procesos paralelos. Por defecto usa la cantidad de CPU detectada.
-* `--pool`: cantidad de paquetes pre-generados por cada worker.
-* `--payload-size`: tamaño de cada paquete CDP. Máximo recomendado: 1500 bytes.
-* `--extra`: bytes adicionales agregados al TLV de descripción de software.
-* `--duration`: duración del ataque en segundos. Si es `0`, corre sin límite.
-* `--yes`: omite la confirmación interactiva.
 
 Durante el ataque, el script muestra estadísticas sobre los paquetes enviados y el promedio de paquetes por segundo.
 
