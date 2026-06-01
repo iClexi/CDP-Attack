@@ -1,4 +1,4 @@
-# Ataque DoS mediante CDP – Guía How-to
+# Ataque DoS mediante CDP
 
 ## Introducción
 
