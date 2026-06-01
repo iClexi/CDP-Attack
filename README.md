@@ -16,15 +16,19 @@ El laboratorio fue realizado por:
 **iClexi**  
 **Matrícula:** 2025-0845
 
-Repositorio del proyecto:
+## Repositorio del proyecto:
 
 [https://github.com/iClexi/CDP-Attack](https://github.com/iClexi/CDP-Attack)
 
-Video demostrativo:
+## Video demostrativo
+
+La demostración práctica del ataque y su mitigación está disponible en YouTube:
 
 [Ver video del laboratorio en YouTube](https://www.youtube.com/watch?v=edOAM4gyGzo)
 
-Documentación técnica profesional:
+URL directa: https://www.youtube.com/watch?v=edOAM4gyGzo
+
+## Documentación técnica profesional:
 
 [Ver documentación técnica profesional en PDF](docs/documentacion-tecnica-profesional.pdf)
 
